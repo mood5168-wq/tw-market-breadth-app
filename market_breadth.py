@@ -3,19 +3,26 @@ import pandas as pd
 from datetime import date, timedelta
 import os
 
-# 存資料的路徑
 DATA_PATH = "data/market_breadth.csv"
 
-# ====== 計算市場寬度的核心函數 ======
-def calculate_market_breadth(tickers):
+# ====== 全上市股票清單 ======
+# 這裡用官方證交所資料，可自行更新
+# 目前示範用範例清單，可隨時從證交所 CSV 更新
+TWSE_LISTED_TICKERS = [
+    "2330.TW", "2317.TW", "2454.TW", "2303.TW",
+    "1301.TW", "1303.TW", "2881.TW", "2882.TW",
+    # ...你可以自行擴充，或用網抓的完整清單
+]
+
+# ====== 計算市場寬度 ======
+def calculate_market_breadth(tickers=TWSE_LISTED_TICKERS):
     """
-    tickers: 股票代碼列表，例如 ["2330.TW", "2317.TW"]
+    tickers: 股票代碼列表
     return: dict，包含今天市場寬度相關數據
     """
     end = date.today()
-    start = end - timedelta(days=7)  # 抓最近 7 天資料，確保有前一天比較
+    start = end - timedelta(days=7)
 
-    # 抓股票歷史資料
     data = yf.download(tickers, start=start, end=end, group_by="ticker", progress=False)
 
     up = down = flat = 0
@@ -51,17 +58,12 @@ def calculate_market_breadth(tickers):
 
 # ====== 存每日結果到 CSV ======
 def save_daily_result(result):
-    """
-    result: dict，calculate_market_breadth 回傳的字典
-    功能: 將結果 append 到 CSV，如果 CSV 不存在就創建
-    """
     os.makedirs("data", exist_ok=True)
 
     df_new = pd.DataFrame([result])
 
     if os.path.exists(DATA_PATH):
         df = pd.read_csv(DATA_PATH)
-        # 避免同一天重複寫入
         if result["date"] in df["date"].values:
             return
         df = pd.concat([df, df_new], ignore_index=True)
@@ -69,4 +71,3 @@ def save_daily_result(result):
         df = df_new
 
     df.to_csv(DATA_PATH, index=False)
-
